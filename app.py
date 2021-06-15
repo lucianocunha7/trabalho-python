@@ -1,35 +1,42 @@
 import tkinter as tk
 import tkinter.ttk as ttk
-import tkinter.messagebox as msb
+import tkinter.messagebox as alert
 from tkinter import *
 import sqlite3
 
 root = Tk()
 root.title("Lista de contatos")
-width = 800
-height = 400
-sc_width = root.winfo_screenwidth()
-sc_height = root.winfo_screenheight()
-x = (sc_width/2) - (width/2)
-y = (sc_height/2) - (height/2)
-root.geometry("%dx%d+%d+%d" % (width, height, x, y))
+largura = 900
+altura = 400
+largura_screen = root.winfo_screenwidth()
+altura_screen = root.winfo_screenheight()
+x = (largura_screen/2) - (largura/2)
+y = (altura_screen/2) - (altura/2)
+root.geometry("%dx%d+%d+%d" % (largura, altura, x, y))
 root.resizable(0, 0)
 # root.iconbitmap("Nova America/Noite/icons/crud.ico")
 root.config(bg="#81F781")
 
-# --------- VARIAVEIS ----------
+
 
 nome    = StringVar()
 av      = StringVar()
 av2     = StringVar()
 av3     = StringVar()
 avd     = StringVar()
-avds     = StringVar()
-updateWindow = None
-id = None
-newWindow = None
+avds    = StringVar()
 
-# ------------ METODOS ----------
+updateJanela = None
+id = None
+janela = None
+
+
+def is_numero(value):
+    try:
+        float(value)
+    except ValueError:
+        return False
+    return True
 
 def limpa_campos():
     nome.set("")
@@ -39,233 +46,296 @@ def limpa_campos():
     avd.set("")
     avds.set("")
 
+def gerarTabela(fetch):
+    for data in fetch:
+        tree.insert('', 'end', values=(data))
 
-def database():
+def criarTabela():
     conn = sqlite3.connect("materias.db")
     cursor = conn.cursor()
     query = """ CREATE TABLE IF NOT EXISTS 'materias' (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                nome TEXT, av INTEGER, av2 INTEGER, av3 INTEGER, avd INTEGER, avds INTEGER) """
+                nome TEXT, av REAL, av2 REAL, av3 REAL, avd REAL, avds REAL, media REAL, situacao TEXT) """
     cursor.execute(query)
     cursor.execute('SELECT * FROM materias ORDER BY nome')
     fetch = cursor.fetchall()
-    for data in fetch:
-        tree.insert('', 'end', values=(data))
+    gerarTabela(fetch)
     cursor.close()
     conn.close()
 
 
-def submitData():
+def inserirMateria():
+    if (av.get() != '' and not is_numero(av.get())) or (av2.get() != '' and not is_numero(av2.get())) or (av3.get() != '' and not is_numero(av3.get())) or (avd.get() != '' and not is_numero(avd.get())) or (avds.get() != '' and not is_numero(avds.get())):
+        alert.showwarning("", "Campos de notas devem ser de valor numérico", icon="warning")
+        print('valor nao inserido')
+        return
+
     tree.delete(*tree.get_children())
-    conn = sqlite3.connect("materias.db")
-    cursor = conn.cursor()
-    query = """ INSERT INTO 'materias' (nome, av, av2, av3, avd, avds) VALUES (?, ?, ?, ?, ?, ?)"""
-    cursor.execute(query, (str(nome.get()), str(av.get()), str(av2.get()), str(av3.get()), str(avd.get()), str(avds.get())))
-    conn.commit()
-    cursor.execute('SELECT * FROM materias ORDER BY nome')
-    fetch = cursor.fetchall()
-    for data in fetch:
-        tree.insert('', 'end', values=(data))
-    cursor.close()
-    conn.close()
-    limpa_campos()
 
-def updateData():
-    tree.delete(*tree.get_children())
-    conn = sqlite3.connect("materias.db")
-    cursor = conn.cursor()
-    query = """ UPDATE 'materias' SET nome = ?, av = ?, av2 = ?, av3 = ?, avd = ?, avds = ? WHERE id = ?"""
-    cursor.execute(query, (str(nome.get()), str(av.get()),
-                           str(av2.get()), str(av3.get()), str(avd.get()), str(avds.get()), int(id)))
-    conn.commit()
-    cursor.execute('SELECT * FROM materias ORDER BY nome')
-    fetch = cursor.fetchall()
-    for data in fetch:
-        tree.insert('', 'end', values=(data))
-    cursor.close()
-    conn.close()
-    limpa_campos()
-    updateWindow.destroy()
-
-def onSelect(event):
-    global id, updateWindow
-    selectItem = tree.focus()
-    conteudo = (tree.item(selectItem))
-    selectedItem = conteudo["values"]
-    id = selectedItem[0]
-    limpa_campos()
-    nome.set(selectedItem[1])
-    av.set(selectedItem[2])
-    av2.set(selectedItem[3])
-    av3.set(selectedItem[4])
-    avd.set(selectedItem[5])
-    avds.set(selectedItem[6])
-
-    #--------- CRIANDO JANELA UPDATE ---------
-    updateWindow = Toplevel()
-    updateWindow.title("ATUALIZANDO CONTATO")
-    width = 480
-    heigth = 200
-    sc_width = updateWindow.winfo_screenwidth()
-    sc_height = updateWindow.winfo_screenheight()
-    x = (sc_width/2) - (width/2)
-    y = (sc_height/2) - (height/2)
-    updateWindow.geometry("%dx%d+%d+%d" % (width, height, x, y))
-    updateWindow.resizable(0, 0)
-
-    # --------- FRAME DO ATUALIZAR ----------
-    formTitle = Frame(updateWindow)
-    formTitle.pack(side=TOP)
-    formContact = Frame(updateWindow)
-    formContact.pack(side = TOP, pady = 10)
-    # --------- LABEL DO ATUALIZAR ----------
-    lbl_title = Label(formTitle, text="Atualizando contato", font=('arial', 18), bg='blue', width=300)
-    lbl_title.pack(fill=X)
-    lbl_nome = Label(formContact, text="Nome", font=('arial', 12))
-    lbl_nome.grid(row=0, sticky=W)
-    lbl_av = Label(formContact, text="av", font=('arial', 12))
-    lbl_av.grid(row=1, sticky=W)
-    lbl_av2 = Label(formContact, text="av2", font=('arial', 12))
-    lbl_av2.grid(row=2, sticky=W)
-    lbl_av3 = Label(formContact, text="av3", font=('arial', 12))
-    lbl_av3.grid(row=3, sticky=W)
-    lbl_avd = Label(formContact, text="avd", font=('arial', 12))
-    lbl_avd.grid(row=4, sticky=W)
-    lbl_avds = Label(formContact, text="avds", font=('arial', 12))
-    lbl_avds.grid(row=5, sticky=W)
-
-    # --------- ENTRY DO ATUALIZAR ----------
-    nome_Entry = Entry(formContact, textvariable=nome, font=('arial', 12))
-    nome_Entry.grid(row=0, column=1)
-    av_Entry = Entry(formContact, textvariable=av, font=('arial', 12))
-    av_Entry.grid(row=1, column=1)
-    av2_Entry = Entry(formContact, textvariable=av2, font=('arial', 12))
-    av2_Entry.grid(row=2, column=1)
-    av3_Entry = Entry(formContact, textvariable=av3, font=('arial', 12))
-    av3_Entry.grid(row=3, column=1)
-    avd_Entry = Entry(formContact, textvariable=avd, font=('arial', 12))
-    avd_Entry.grid(row=4, column=1)
-    avds_Entry = Entry(formContact, textvariable=avds, font=('arial', 12))
-    avds_Entry.grid(row=5, column=1)
-    
-    # --------- BUTTON DO ATUALIZAR ---------
-    bttn_update = Button(formContact, text="Atualizar", width=50, command=updateData)
-    bttn_update.grid(row=6, columnspan=2, pady=10)
-
-def deletarData():
-    if not tree.selection():
-        resultado = msb.showwarning("", "Por favor, selecione um item na lista.", icon="warning")
+    if av.get() == '' or av2.get() == '' or avd.get() == '':
+        media = 0
+        situacao = ''
     else:
-        resultado = msb.askquestion("", "Tem certeza que deseja deletar o contato?")
+        nota1 = float(av.get())
+        nota2 = float(av2.get())
+        nota3 = float(avd.get())
+
+        if av3.get() != '':
+            temp = float(av3.get())
+            if nota1 < nota2:
+                if temp > nota1: 
+                    nota1 = temp
+            else:
+                if temp > nota2: 
+                    nota2 = temp
+        
+        if avds.get() != '':
+            temp = float(avds.get())
+            if temp > nota3: 
+                nota3 = temp
+
+        media = round((nota1+nota2+nota3)/3, 1)
+        if media >= 6.0:
+            situacao = 'Aprovado'
+        else:
+            situacao = 'Reprovado'
+
+    conn = sqlite3.connect("materias.db")
+    cursor = conn.cursor()
+    query = """ INSERT INTO 'materias' (nome, av, av2, av3, avd, avds, media, situacao) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
+    cursor.execute(query, (str(nome.get()), str(av.get()), str(av2.get()), str(av3.get()), str(avd.get()), str(avds.get()), media, situacao))
+    conn.commit()
+    cursor.execute('SELECT * FROM materias ORDER BY nome')
+    fetch = cursor.fetchall()
+    for data in fetch:
+        tree.insert('', 'end', values=(data))
+    cursor.close()
+    conn.close()
+    limpa_campos()
+
+def lancarNota():
+    if (av.get() != '' and not is_numero(av.get())) or (av2.get() != '' and not is_numero(av2.get())) or (av3.get() != '' and not is_numero(av3.get())) or (avd.get() != '' and not is_numero(avd.get())) or (avds.get() != '' and not is_numero(avds.get())):
+        alert.showwarning("", "Campos de notas devem ser de valor numérico", icon="warning")
+        print('valor nao inserido')
+        return
+
+    tree.delete(*tree.get_children())
+
+    if av.get() == '' or av2.get() == '' or avd.get() == '':
+        media = 0
+        situacao = ''
+    else:
+        nota1 = float(av.get())
+        nota2 = float(av2.get())
+        nota3 = float(avd.get())
+
+        if av3.get() != '':
+            temp = float(av3.get())
+            if nota1 < nota2:
+                if temp > nota1: 
+                    nota1 = temp
+            else:
+                if temp > nota2: 
+                    nota2 = temp
+        
+        if avds.get() != '':
+            temp = float(avds.get())
+            if temp > nota3: 
+                nota3 = temp
+
+        media = round((nota1+nota2+nota3)/3, 1)
+        if media >= 6.0:
+            situacao = 'Aprovado'
+        else:
+            situacao = 'Reprovado'
+
+    conn = sqlite3.connect("materias.db")
+    cursor = conn.cursor()
+    query = """ UPDATE 'materias' SET nome = ?, av = ?, av2 = ?, av3 = ?, avd = ?, avds = ?, media = ?, situacao = ? WHERE id = ?"""
+    cursor.execute(query, (str(nome.get()), str(av.get()),
+                           str(av2.get()), str(av3.get()), str(avd.get()), str(avds.get()), media, situacao, int(id)))
+    conn.commit()
+    cursor.execute('SELECT * FROM materias ORDER BY nome')
+    fetch = cursor.fetchall()
+    for data in fetch:
+        tree.insert('', 'end', values=(data))
+    cursor.close()
+    conn.close()
+    limpa_campos()
+    updateJanela.destroy()
+
+def selecionarCampo(event):
+    global id, updateJanela
+    lista_itens = tree.focus()
+    conteudo = (tree.item(lista_itens))
+    itens = conteudo["values"]
+    id = itens[0]
+    limpa_campos()
+    nome.set(itens[1])
+    av.set(itens[2])
+    av2.set(itens[3])
+    av3.set(itens[4])
+    avd.set(itens[5])
+    avds.set(itens[6])
+
+    updateJanela = Toplevel()
+    updateJanela.title("LANÇAMENTO DE NOTAS")
+    largura = 550
+    altura = 300
+    largura_screen = updateJanela.winfo_screenwidth()
+    altura_screen = updateJanela.winfo_screenheight()
+    x = (largura_screen/2) - (largura/2)
+    y = (altura_screen/2) - (altura/2)
+    updateJanela.geometry("%dx%d+%d+%d" % (largura, altura, x, y))
+    updateJanela.resizable(0, 0)
+
+    form_title = Frame(updateJanela)
+    form_title.pack(side=TOP)
+    form_materias = Frame(updateJanela)
+    form_materias.pack(side = TOP, pady = 10)
+
+    lbl_title = Label(form_title, text="Atualize as notas da matéria selecionada aqui:", font=('arial', 18), bg='blue', fg='white', width=300)
+    lbl_title.pack(fill=X)
+    lbl_materia = Label(form_title, textvariable=nome, font='arial 25 bold', bg='blue', fg='white', width=300, pady=5)
+    lbl_materia.pack(fill=X)
+
+    lbl_av = Label(form_materias, text="AV", font=('arial', 12))
+    lbl_av.grid(row=0, sticky=W)
+    lbl_av2 = Label(form_materias, text="AV2", font=('arial', 12))
+    lbl_av2.grid(row=1, sticky=W)
+    lbl_av3 = Label(form_materias, text="AV3", font=('arial', 12))
+    lbl_av3.grid(row=2, sticky=W)
+    lbl_avd = Label(form_materias, text="AVD", font=('arial', 12))
+    lbl_avd.grid(row=3, sticky=W)
+    lbl_avds = Label(form_materias, text="AVDS", font=('arial', 12))
+    lbl_avds.grid(row=4, sticky=W)
+
+    av_entry = Entry(form_materias, textvariable=av, font=('arial', 12))
+    av_entry.grid(row=0, column=1)
+    av2_entry = Entry(form_materias, textvariable=av2, font=('arial', 12))
+    av2_entry.grid(row=1, column=1)
+    av3_entry = Entry(form_materias, textvariable=av3, font=('arial', 12))
+    av3_entry.grid(row=2, column=1)
+    avd_entry = Entry(form_materias, textvariable=avd, font=('arial', 12))
+    avd_entry.grid(row=3, column=1)
+    avds_entry = Entry(form_materias, textvariable=avds, font=('arial', 12))
+    avds_entry.grid(row=4, column=1)
+    
+    btn_update = Button(form_materias, text="Atualizar", width=50, command=lancarNota)
+    btn_update.grid(row=6, columnspan=2, pady=10)
+
+def apagarMateria():
+    if not tree.selection():
+        resultado = alert.showwarning("", "Por favor, selecione uma matéria da lista para realizar o comendo.", icon="warning")
+    else:
+        lista_itens = tree.focus()
+        conteudo = (tree.item(lista_itens))
+        itens = conteudo['values']
+        nome = itens[1]
+        resultado = alert.askquestion("", f"Tem certeza que deseja apagar a matéria {nome} da grade de Luciano?")
         if resultado == 'yes':
-            selectItem = tree.focus()
-            conteudo = (tree.item(selectItem))
-            selectedItem = conteudo['values']
-            tree.delete(selectItem)
+
+            tree.delete(lista_itens)
             conn = sqlite3.connect("materias.db")
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM 'materias' WHERE id = %d" % selectedItem[0])
+            cursor.execute("DELETE FROM 'materias' WHERE id = %d" % itens[0])
             conn.commit()
             cursor.close()
             conn.close()
 
-def inserirData():
-    global newWindow
+def novaMateria():
+    global janela
     limpa_campos()
 
-    #--------- CRIANDO JANELA INCLUDE ---------
-    newWindow = Toplevel()
-    newWindow.title("INSERINDO MATÉRIA")
-    width = 480
-    heigth = 200
-    sc_width = newWindow.winfo_screenwidth()
-    sc_height = newWindow.winfo_screenheight()
-    x = (sc_width/2) - (width/2)
-    y = (sc_height/2) - (height/2)
-    newWindow.geometry("%dx%d+%d+%d" % (width, height, x, y))
-    newWindow.resizable(0, 0)
 
-    # --------- FRAME DO INCLUDE ----------
-    formTitle = Frame(newWindow)
-    formTitle.pack(side=TOP)
-    formContact = Frame(newWindow)
-    formContact.pack(side=TOP, pady=10)
-    # --------- LABEL DO INCLUDE ----------
-    lbl_title = Label(formTitle, text="Inserindo contato",
-                      font=('arial', 18), bg='blue', width=300)
+    janela = Toplevel()
+    janela.title("NOVA MATÉRIA")
+    largura = 480
+    altura = 300
+    largura_screen = janela.winfo_screenwidth()
+    altura_screen = janela.winfo_screenheight()
+    x = (largura_screen/2) - (largura/2)
+    y = (altura_screen/2) - (altura/2)
+    janela.geometry("%dx%d+%d+%d" % (largura, altura, x, y))
+    janela.resizable(0, 0)
+
+    
+    form_title = Frame(janela)
+    form_title.pack(side=TOP)
+    form_materias = Frame(janela)
+    form_materias.pack(side=TOP, pady=10)
+    
+    lbl_title = Label(form_title, text="Preencha os campos para adicionar matéria",
+                      font=('arial', 18), bg='blue',fg='white' , width=300, pady=5)
     lbl_title.pack(fill=X)
-    lbl_nome = Label(formContact, text="nome", font=('arial', 12))
+    lbl_nome = Label(form_materias, text="Nome", font=('arial', 12))
     lbl_nome.grid(row=0, sticky=W)
-    lbl_av = Label(formContact, text="av", font=('arial', 12))
+    lbl_av = Label(form_materias, text="AV", font=('arial', 12))
     lbl_av.grid(row=1, sticky=W)
-    lbl_av2 = Label(formContact, text="av2", font=('arial', 12))
+    lbl_av2 = Label(form_materias, text="AV2", font=('arial', 12))
     lbl_av2.grid(row=2, sticky=W)
-    lbl_av3 = Label(formContact, text="av3", font=('arial', 12))
+    lbl_av3 = Label(form_materias, text="AV3", font=('arial', 12))
     lbl_av3.grid(row=3, sticky=W)
-    lbl_avd = Label(formContact, text="avd", font=('arial', 12))
+    lbl_avd = Label(form_materias, text="AVD", font=('arial', 12))
     lbl_avd.grid(row=4, sticky=W)
-    lbl_avds = Label(formContact, text="avds", font=('arial', 12))
+    lbl_avds = Label(form_materias, text="AVDS", font=('arial', 12))
     lbl_avds.grid(row=5, sticky=W)
 
-    # --------- ENTRY DO INCLUDE ----------
-    nome_Entry = Entry(formContact, textvariable=nome, font=('arial', 12))
-    nome_Entry.grid(row=0, column=1)
-    av_Entry = Entry(formContact, textvariable=av, font=('arial', 12))
-    av_Entry.grid(row=1, column=1)
-    av2_Entry = Entry(formContact, textvariable=av2, font=('arial', 12))
-    av2_Entry.grid(row=2, column=1)
-    av3_Entry = Entry(formContact, textvariable=av3, font=('arial', 12))
-    av3_Entry.grid(row=3, column=1)
-    avd_Entry = Entry(formContact, textvariable=avd, font=('arial', 12))
-    avd_Entry.grid(row=4, column=1)
-    avds_Entry = Entry(formContact, textvariable=avds, font=('arial', 12))
-    avds_Entry.grid(row=5, column=1)
+    
+    nome_entry = Entry(form_materias, textvariable=nome, font=('arial', 12))
+    nome_entry.grid(row=0, column=1)
+    av_entry = Entry(form_materias, textvariable=av, font=('arial', 12))
+    av_entry.grid(row=1, column=1)
+    av2_entry = Entry(form_materias, textvariable=av2, font=('arial', 12))
+    av2_entry.grid(row=2, column=1)
+    av3_entry = Entry(form_materias, textvariable=av3, font=('arial', 12))
+    av3_entry.grid(row=3, column=1)
+    avd_entry = Entry(form_materias, textvariable=avd, font=('arial', 12))
+    avd_entry.grid(row=4, column=1)
+    avds_entry = Entry(form_materias, textvariable=avds, font=('arial', 12))
+    avds_entry.grid(row=5, column=1)
 
-    # --------- BUTTON DO INCLUDE ---------
-    bttn_inserir = Button(formContact, text="Inserir",
-                        width=50, command=submitData)
-    bttn_inserir.grid(row=6, columnspan=2, pady=10)
+    btn_inserir = Button(form_materias, text="Inserir",
+                        width=50, command=inserirMateria)
+    btn_inserir.grid(row=6, columnspan=2, pady=10)
 
 def sobreApp():
     pass
 
-# --------- FRAMES TELA PRINCIPAL -------------
-top = Frame(root, width=500, bd=1,relief=SOLID)
+
+top = Frame(root, width=800, bd=1, relief=SOLID)
 top.pack(side=TOP)
-mid = Frame(root, width=500, bg="#81F781")
-mid.pack(side=TOP)
-midLeft = Frame(mid, width=100)
-midLeft.pack(side=LEFT)
-midLeftPadding = Frame(mid, width=350, bg="#81F781")
-midLeftPadding.pack(side=LEFT)
-midRight = Frame(mid, width=100)
-midRight.pack(side=RIGHT)
-bottom = Frame(root, width=200)
-bottom.pack(side=BOTTOM)
+lateral = Frame(root, width=100, height=300, bg="#81F781")
+lateral.pack(side=LEFT)
+
+lateralTop = Frame(lateral, width=100)
+lateralTop.pack(side=TOP, pady=10)
+
+lateralAviso = Frame(lateral, width=100)
+lateralAviso.pack(side=BOTTOM, pady=85, padx=20)
+
+lateralBottom = Frame(lateral, width=100)
+lateralBottom.pack(side=BOTTOM, pady=10)
+
 tableMargim = Frame(root, width=500)
-tableMargim.pack(side=TOP)
+tableMargim.pack(side=RIGHT, pady=20, padx=20)
 
 
-# --------- LABELS TELA PRINCIPAL -------------
 lbl_title = Label(top, text="Grade de matérias de Luciano", font='arial 18 bold italic', width=500) 
 lbl_title.pack(fill=X)
 
-lbl_alt = Label(bottom, text="Para alterar clique duas vezes no contato desejado.", font=('arial', 12), width=200)
+lbl_alt = Label(lateralAviso, text="Para atualizar o lançamento\n das notas, clique duas vezes\n na matéria desejada.", font='arial 16 bold')
 lbl_alt.pack(fill=X)
 
-# --------- BUTTONS TELA PRINCIPAL -------------
-bttn_add = Button(midLeft, text="Inserir", bg="OliveDrab1", command=inserirData)
-bttn_add.pack()
-bttn_del = Button(midRight, text="Deletar",
-                 bg="orange red", command=deletarData)
-bttn_del.pack(side=RIGHT)
 
-# --------- TREEVIEW TELA PRINCIPAL -------------
+btn_add = Button(lateralTop, text="Nova matéria", width=20, height=2, command=novaMateria)
+btn_add.pack(side=TOP)
+btn_del = Button(lateralBottom, text="Deletar matéria", width=20, height=2, command=apagarMateria)
+btn_del.pack()
 
 scrollbarX = Scrollbar(tableMargim, orient=HORIZONTAL)
 scrollbarY = Scrollbar(tableMargim, orient=VERTICAL)
 
-tree = ttk.Treeview(tableMargim, columns=("id", "Nome", "AV", "AV2", "AV3", "AVD", "AVDS", "Média", "Situação"), height=400, 
-                    selectmode="extended", yscrollcommand=scrollbarY.set, xscrollcommand=scrollbarX.set)
+tree = ttk.Treeview(tableMargim, columns=("id", "Nome", "AV", "AV2", "AV3", "AVD", "AVDS", "Média", "Situação"), height=400, selectmode="extended", yscrollcommand=scrollbarY.set, xscrollcommand=scrollbarX.set)
 scrollbarY.config(command=tree.yview)
 scrollbarY.pack(side=RIGHT, fill=Y)
 scrollbarX.config(command=tree.xview)
@@ -282,34 +352,33 @@ tree.heading("Situação", text="Situação", anchor=W)
 tree.column('#0', stretch=NO, minwidth=0, width=1)
 tree.column('#1', stretch=NO, minwidth=0, width=40)
 tree.column('#2', stretch=NO, minwidth=0, width=150)
-tree.column('#3', stretch=NO, minwidth=0, width=60)
-tree.column('#4', stretch=NO, minwidth=0, width=60)
-tree.column('#5', stretch=NO, minwidth=0, width=60)
-tree.column('#6', stretch=NO, minwidth=0, width=60)
-tree.column('#7', stretch=NO, minwidth=0, width=60)
-tree.column('#8', stretch=NO, minwidth=0, width=60)
-tree.column('#9', stretch=NO, minwidth=0, width=150)
+tree.column('#3', stretch=NO, minwidth=0, width=50)
+tree.column('#4', stretch=NO, minwidth=0, width=50)
+tree.column('#5', stretch=NO, minwidth=0, width=50)
+tree.column('#6', stretch=NO, minwidth=0, width=50)
+tree.column('#7', stretch=NO, minwidth=0, width=50)
+tree.column('#8', stretch=NO, minwidth=0, width=50)
+tree.column('#9', stretch=NO, minwidth=0, width=80)
 tree.pack()
-tree.bind('<Double-Button-1>', onSelect)
+tree.bind('<Double-Button-1>', selecionarCampo)
 
-# ----------------- CRIANDO MENU -----------------
-menu_bar = Menu(root)
-root.config(menu=menu_bar)
+barra_superior = Menu(root)
+root.config(menu=barra_superior)
 
 # construir o menu
-fileMenu = Menu(menu_bar, tearoff = 0)
-menu_bar.add_cascade(label="Menu", menu=fileMenu)
-fileMenu.add_command(label="Criar Novo", command=inserirData)
+fileMenu = Menu(barra_superior, tearoff = 0)
+barra_superior.add_cascade(label="Menu", menu=fileMenu)
+fileMenu.add_command(label="Criar Novo", command=novaMateria)
 fileMenu.add_separator()
 fileMenu.add_command(label="Sair", command=root.destroy)
 
 # construindo outro
-menuSobre = Menu(menu_bar, tearoff = 0)
-menu_bar.add_cascade(label="Sobre", menu=menuSobre)
+menuSobre = Menu(barra_superior, tearoff = 0)
+barra_superior.add_cascade(label="Sobre", menu=menuSobre)
 menuSobre.add_command(label="Info", command=sobreApp)
 
 
-#----------INICIANDO -------------
+
 if __name__ == '__main__':
-    database()
+    criarTabela()
     root.mainloop()
