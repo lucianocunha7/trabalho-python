@@ -5,7 +5,7 @@ from tkinter import *
 import sqlite3
 
 root = Tk()
-root.title("Lista de contatos")
+root.title("Grade de matérias")
 largura = 900
 altura = 400
 largura_screen = root.winfo_screenwidth()
@@ -14,10 +14,11 @@ x = (largura_screen/2) - (largura/2)
 y = (altura_screen/2) - (altura/2)
 root.geometry("%dx%d+%d+%d" % (largura, altura, x, y))
 root.resizable(0, 0)
-# root.iconbitmap("Nova America/Noite/icons/crud.ico")
 root.config(bg="#81F781")
 
-
+updateJanela = None
+id = None
+janela = None
 
 nome    = StringVar()
 av      = StringVar()
@@ -26,19 +27,14 @@ av3     = StringVar()
 avd     = StringVar()
 avds    = StringVar()
 
-updateJanela = None
-id = None
-janela = None
-
-
-def is_numero(value):
+def isNumero(value):
     try:
         float(value)
     except ValueError:
         return False
     return True
 
-def limpa_campos():
+def limpaCampos():
     nome.set("")
     av.set("")
     av2.set("")
@@ -64,9 +60,8 @@ def criarTabela():
 
 
 def inserirMateria():
-    if (av.get() != '' and not is_numero(av.get())) or (av2.get() != '' and not is_numero(av2.get())) or (av3.get() != '' and not is_numero(av3.get())) or (avd.get() != '' and not is_numero(avd.get())) or (avds.get() != '' and not is_numero(avds.get())):
-        alert.showwarning("", "Campos de notas devem ser de valor numérico", icon="warning")
-        print('valor nao inserido')
+    if nome.get() == '' or isNumero(nome.get()) or (av.get() != '' and not isNumero(av.get())) or (av2.get() != '' and not isNumero(av2.get())) or (av3.get() != '' and not isNumero(av3.get())) or (avd.get() != '' and not isNumero(avd.get())) or (avds.get() != '' and not isNumero(avds.get())):
+        alert.showwarning("", "Campos de notas devem ser de valor numérico e o nome da matéria deve ser preenchido e não pode ser um número", icon="warning")
         return
 
     tree.delete(*tree.get_children())
@@ -106,16 +101,14 @@ def inserirMateria():
     conn.commit()
     cursor.execute('SELECT * FROM materias ORDER BY nome')
     fetch = cursor.fetchall()
-    for data in fetch:
-        tree.insert('', 'end', values=(data))
+    gerarTabela(fetch)
     cursor.close()
     conn.close()
-    limpa_campos()
+    limpaCampos()
 
 def lancarNota():
-    if (av.get() != '' and not is_numero(av.get())) or (av2.get() != '' and not is_numero(av2.get())) or (av3.get() != '' and not is_numero(av3.get())) or (avd.get() != '' and not is_numero(avd.get())) or (avds.get() != '' and not is_numero(avds.get())):
+    if (av.get() != '' and not isNumero(av.get())) or (av2.get() != '' and not isNumero(av2.get())) or (av3.get() != '' and not isNumero(av3.get())) or (avd.get() != '' and not isNumero(avd.get())) or (avds.get() != '' and not isNumero(avds.get())):
         alert.showwarning("", "Campos de notas devem ser de valor numérico", icon="warning")
-        print('valor nao inserido')
         return
 
     tree.delete(*tree.get_children())
@@ -156,11 +149,10 @@ def lancarNota():
     conn.commit()
     cursor.execute('SELECT * FROM materias ORDER BY nome')
     fetch = cursor.fetchall()
-    for data in fetch:
-        tree.insert('', 'end', values=(data))
+    gerarTabela(fetch)
     cursor.close()
     conn.close()
-    limpa_campos()
+    limpaCampos()
     updateJanela.destroy()
 
 def selecionarCampo(event):
@@ -169,7 +161,7 @@ def selecionarCampo(event):
     conteudo = (tree.item(lista_itens))
     itens = conteudo["values"]
     id = itens[0]
-    limpa_campos()
+    limpaCampos()
     nome.set(itens[1])
     av.set(itens[2])
     av2.set(itens[3])
@@ -244,7 +236,7 @@ def apagarMateria():
 
 def novaMateria():
     global janela
-    limpa_campos()
+    limpaCampos()
 
 
     janela = Toplevel()
@@ -298,9 +290,6 @@ def novaMateria():
                         width=50, command=inserirMateria)
     btn_inserir.grid(row=6, columnspan=2, pady=10)
 
-def sobreApp():
-    pass
-
 
 top = Frame(root, width=800, bd=1, relief=SOLID)
 top.pack(side=TOP)
@@ -316,15 +305,15 @@ lateralAviso.pack(side=BOTTOM, pady=85, padx=20)
 lateralBottom = Frame(lateral, width=100)
 lateralBottom.pack(side=BOTTOM, pady=10)
 
-tableMargim = Frame(root, width=500)
-tableMargim.pack(side=RIGHT, pady=20, padx=20)
+tabelaMaterias = Frame(root, width=500)
+tabelaMaterias.pack(side=RIGHT, pady=20, padx=20)
 
 
 lbl_title = Label(top, text="Grade de matérias de Luciano", font='arial 18 bold italic', width=500) 
 lbl_title.pack(fill=X)
 
-lbl_alt = Label(lateralAviso, text="Para atualizar o lançamento\n das notas, clique duas vezes\n na matéria desejada.", font='arial 16 bold')
-lbl_alt.pack(fill=X)
+lbl_aviso = Label(lateralAviso, text="Para atualizar o lançamento\n das notas, clique duas vezes\n na matéria desejada.", font='arial 16 bold')
+lbl_aviso.pack(fill=X)
 
 
 btn_add = Button(lateralTop, text="Nova matéria", width=20, height=2, command=novaMateria)
@@ -332,10 +321,10 @@ btn_add.pack(side=TOP)
 btn_del = Button(lateralBottom, text="Deletar matéria", width=20, height=2, command=apagarMateria)
 btn_del.pack()
 
-scrollbarX = Scrollbar(tableMargim, orient=HORIZONTAL)
-scrollbarY = Scrollbar(tableMargim, orient=VERTICAL)
+scrollbarX = Scrollbar(tabelaMaterias, orient=HORIZONTAL)
+scrollbarY = Scrollbar(tabelaMaterias, orient=VERTICAL)
 
-tree = ttk.Treeview(tableMargim, columns=("id", "Nome", "AV", "AV2", "AV3", "AVD", "AVDS", "Média", "Situação"), height=400, selectmode="extended", yscrollcommand=scrollbarY.set, xscrollcommand=scrollbarX.set)
+tree = ttk.Treeview(tabelaMaterias, columns=("id", "Nome", "AV", "AV2", "AV3", "AVD", "AVDS", "Média", "Situação"), height=400, selectmode="extended", yscrollcommand=scrollbarY.set, xscrollcommand=scrollbarX.set)
 scrollbarY.config(command=tree.yview)
 scrollbarY.pack(side=RIGHT, fill=Y)
 scrollbarX.config(command=tree.xview)
@@ -365,17 +354,12 @@ tree.bind('<Double-Button-1>', selecionarCampo)
 barra_superior = Menu(root)
 root.config(menu=barra_superior)
 
-# construir o menu
-fileMenu = Menu(barra_superior, tearoff = 0)
-barra_superior.add_cascade(label="Menu", menu=fileMenu)
-fileMenu.add_command(label="Criar Novo", command=novaMateria)
-fileMenu.add_separator()
-fileMenu.add_command(label="Sair", command=root.destroy)
+meu_menu = Menu(barra_superior, tearoff = 0)
+barra_superior.add_cascade(label="Menu", menu=meu_menu)
+meu_menu.add_command(label="Adicionar nova matéria", command=novaMateria)
+meu_menu.add_separator()
+meu_menu.add_command(label="Sair", command=root.destroy)
 
-# construindo outro
-menuSobre = Menu(barra_superior, tearoff = 0)
-barra_superior.add_cascade(label="Sobre", menu=menuSobre)
-menuSobre.add_command(label="Info", command=sobreApp)
 
 
 
